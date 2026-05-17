@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>편의점 브랜드 모니터링 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f40;
+    --cu: #6c63ff;
+    --cu-light: #a89cff;
+    --gs: #00c896;
+    --gs-light: #5fffd4;
+    --text: #e8eaf0;
+    --muted: #7b82a0;
+    --accent: #ff6b6b;
+    --theqoo: #ff9f43;
+    --fmkorea: #54a0ff;
+    --instiz: #5f27cd;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0d0f14 0%, #161929 100%);
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .header-left h1 span { color: var(--cu); }
+  .header-left p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+  .header-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+  .header-badge span { color: var(--gs); font-weight: 700; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    gap: 4px;
+  }
+  .tab {
+    padding: 14px 24px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--cu-light);
+    border-bottom-color: var(--cu);
+  }
+
+  /* Tab Content */
+  .tab-content { display: none; padding: 32px 40px; }
+  .tab-content.active { display: block; }
+
+  /* Summary Tab */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .card h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Keyword Bar Chart */
+  .bar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .bar-label {
+    font-size: 13px;
+    font-weight: 500;
+    width: 90px;
+    flex-shrink: 0;
+  }
+  .bar-label.cu { color: var(--cu-light); }
+  .bar-label.gs { color: var(--gs-light); }
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .bar-fill.cu { background: linear-gradient(90deg, var(--cu), var(--cu-light)); }
+  .bar-fill.gs { background: linear-gradient(90deg, var(--gs), var(--gs-light)); }
+  .bar-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* Site Donut */
+  .donut-container {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .donut-svg { flex-shrink: 0; }
+  .donut-legend { flex: 1; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-info { flex: 1; }
+  .legend-name { font-size: 13px; font-weight: 500; }
+  .legend-count { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .legend-pct {
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+  }
+
+  /* Stat Cards */
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .stat-card .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .stat-card .value {
+    font-size: 32px;
+    font-weight: 900;
+    font-family: 'Space Mono', monospace;
+    line-height: 1;
+  }
+  .stat-card .sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .stat-card.cu-card { border-top: 3px solid var(--cu); }
+  .stat-card.gs-card { border-top: 3px solid var(--gs); }
+  .stat-card.total-card { border-top: 3px solid var(--accent); }
+  .stat-card.site-card { border-top: 3px solid var(--theqoo); }
+
+  /* Keyword Stats Tab */
+  .keyword-section { margin-bottom: 32px; }
+  .keyword-section h2 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .keyword-section h2::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 16px;
+    border-radius: 2px;
+  }
+  .cu-section h2::before { background: var(--cu); }
+  .gs-section h2::before { background: var(--gs); }
+
+  .keyword-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .keyword-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s;
+  }
+  .keyword-item:hover {
+    border-color: var(--cu);
+    background: var(--surface2);
+  }
+  .keyword-item.gs-kw:hover { border-color: var(--gs); }
+  .keyword-rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 20px;
+  }
+  .keyword-rank.top3 { color: var(--accent); font-weight: 700; }
+  .keyword-word {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .keyword-bar-mini {
+    width: 80px;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .keyword-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--cu), var(--cu-light));
+  }
+  .keyword-bar-fill.gs { background: linear-gradient(90deg, var(--gs), var(--gs-light)); }
+  .keyword-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 24px;
+    text-align: right;
+  }
+
+  /* Monitoring Tab */
+  .monitor-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .monitor-tab {
+    padding: 10px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .monitor-tab.cu-tab.active {
+    background: rgba(108, 99, 255, 0.15);
+    border-color: var(--cu);
+    color: var(--cu-light);
+  }
+  .monitor-tab.gs-tab.active {
+    background: rgba(0, 200, 150, 0.15);
+    border-color: var(--gs);
+    color: var(--gs-light);
+  }
+  .monitor-tab:hover { color: var(--text); }
+
+  .monitor-content { display: none; }
+  .monitor-content.active { display: block; }
+
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--cu);
+  }
+  .filter-btn.gs-filter.active, .filter-btn.gs-filter:hover {
+    border-color: var(--gs);
+  }
+
+  /* Post Table */
+  .post-table { width: 100%; border-collapse: collapse; }
+  .post-table th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .post-table td {
+    padding: 13px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .post-table tr:hover td { background: var(--surface2); }
+  .post-table tr:last-child td { border-bottom: none; }
+
+  .post-title a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+    display: block;
+    max-width: 560px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .post-title a:hover { color: var(--cu-light); }
+  .post-title a.gs-link:hover { color: var(--gs-light); }
+
+  .site-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-theqoo { background: rgba(255,159,67,0.15); color: var(--theqoo); border: 1px solid rgba(255,159,67,0.3); }
+  .badge-fmkorea { background: rgba(84,160,255,0.15); color: var(--fmkorea); border: 1px solid rgba(84,160,255,0.3); }
+  .badge-instiz { background: rgba(95,39,205,0.25); color: #a29bfe; border: 1px solid rgba(95,39,205,0.4); }
+
+  .post-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .kw-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(108,99,255,0.15);
+    color: var(--cu-light);
+    border: 1px solid rgba(108,99,255,0.3);
+  }
+  .kw-tag.gs { background: rgba(0,200,150,0.1); color: var(--gs-light); border-color: rgba(0,200,150,0.3); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* Scrollable table wrapper */
+  .table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .page-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    transition: all 0.15s;
+  }
+  .page-btn.active, .page-btn:hover {
+    background: var(--cu);
+    border-color: var(--cu);
+    color: white;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+  <div id="loading" style="
+  position:fixed;
+  inset:0;
+  background:rgba(13,15,20,0.92);
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+  color:#e8eaf0;
+  font-size:14px;
+">
+  <div style="font-size:24px;">⏳</div>
+  <div>Supabase에서 데이터를 불러오는 중입니다...</div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <h1>편의점 브랜드 <span>모니터링</span> 대시보드</h1>
+    <p>수집기간: 2026.05.06 ~ 2026.05.12 &nbsp;|&nbsp; 수집사이트: 더쿠 · 에펨코리아 · 인스티즈</p>
+  </div>
+  <div class="header-badge">최종 업데이트: <span>2026.05.12</span></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('summary')">📊 요약</div>
+  <div class="tab" onclick="showTab('keywords')">🔍 키워드 통계</div>
+  <div class="tab" onclick="showTab('monitoring')">📋 게시글 모니터링</div>
+</div>
+
+<!-- ===== 요약 탭 ===== -->
+<div class="tab-content active" id="tab-summary">
+
+  <div class="stat-cards">
+    <div class="stat-card total-card">
+      <div class="label">총 수집 게시글</div>
+      <div class="value" style="color: var(--accent)" id="stat-total">-</div>
+      <div class="sub">05.06 ~ 05.12 기준</div>
+    </div>
+    <div class="stat-card cu-card">
+      <div class="label">CU 관련 게시글</div>
+      <div class="value" style="color: var(--cu-light)" id="stat-cu">-</div>
+      <div class="sub">CU · 씨유 · 포켓CU · 포켓씨유</div>
+    </div>
+    <div class="stat-card gs-card">
+      <div class="label">GS25 관련 게시글</div>
+      <div class="value" style="color: var(--gs-light)" id="stat-gs">-</div>
+      <div class="sub">GS25 · 우동지 · 우리동네GS</div>
+    </div>
+    <div class="stat-card site-card">
+      <div class="label">수집 사이트</div>
+      <div class="value" style="color: var(--theqoo)">3</div>
+      <div class="sub">더쿠 · 에펨코리아 · 인스티즈</div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <!-- 키워드별 게시글 수 -->
+    <div class="card">
+      <h3>키워드별 게시글 수</h3>
+      <div id="kw-bars"></div>
+    </div>
+
+    <!-- 사이트별 게시글 수 -->
+    <div class="card">
+      <h3>사이트별 게시글 수</h3>
+      <div class="donut-container">
+        <svg class="donut-svg" width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="52" fill="none" stroke="#2a2f40" stroke-width="22"/>
+          <g id="donut-circles"></g>
+          <text x="70" y="66" text-anchor="middle" fill="#e8eaf0" font-size="22" font-weight="900" font-family="Space Mono" id="donut-total">-</text>
+          <text x="70" y="82" text-anchor="middle" fill="#7b82a0" font-size="9" font-family="Noto Sans KR">총 게시글</text>
+        </svg>
+        <div class="donut-legend" id="site-legend"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 키워드 통계 탭 ===== -->
+<div class="tab-content" id="tab-keywords">
+
+  <div class="keyword-section cu-section">
+    <h2 style="color:var(--cu-light)">CU 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ 05.06~05.12 제목+본문 명사 분석</small></h2>
+    <div class="keyword-grid" id="cu-keyword-grid"></div>
+  </div>
+
+  <div class="keyword-section gs-section" style="margin-top:32px">
+    <h2 style="color:var(--gs-light)">GS25 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ 05.06~05.12 제목+본문 명사 분석</small></h2>
+    <div class="keyword-grid" id="gs-keyword-grid"></div>
+  </div>
+</div>
+
+<!-- ===== 게시글 모니터링 탭 ===== -->
+<div class="tab-content" id="tab-monitoring">
+
+  <div class="monitor-tabs">
+    <div class="monitor-tab cu-tab active" onclick="showMonitor('cu')">🟣 CU</div>
+    <div class="monitor-tab gs-tab" onclick="showMonitor('gs')">🟢 GS25</div>
+  </div>
+
+  <!-- CU 모니터링 -->
+  <div class="monitor-content active" id="monitor-cu">
+    <div class="filter-bar">
+      <div class="filter-btn active" onclick="filterSite(this, 'cu', 'all')">전체</div>
+      <div class="filter-btn" onclick="filterSite(this, 'cu', '더쿠')">더쿠</div>
+      <div class="filter-btn" onclick="filterSite(this, 'cu', '에펨코리아')">에펨코리아</div>
+      <div class="filter-btn" onclick="filterSite(this, 'cu', '인스티즈')">인스티즈</div>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <div class="sort-btn active" onclick="sortTable(this,'cu','date_desc')">날짜 최신순</div>
+        <div class="sort-btn" onclick="sortTable(this,'cu','date_asc')">날짜 오래된순</div>
+        <div class="sort-btn" onclick="sortTable(this,'cu','views_desc')">조회수 높은순</div>
+        <div class="sort-btn" onclick="sortTable(this,'cu','views_asc')">조회수 낮은순</div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="post-table" id="cu-table">
+        <thead>
+          <tr>
+            <th style="width:44%">제목</th>
+            <th style="width:13%">사이트</th>
+            <th style="width:10%">키워드</th>
+            <th style="width:11%">작성일</th>
+            <th style="width:12%">조회수 / 댓글수</th>
+          </tr>
+        </thead>
+        <tbody id="cu-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="cu-pagination"></div>
+  </div>
+
+  <!-- GS25 모니터링 -->
+  <div class="monitor-content" id="monitor-gs">
+    <div class="filter-bar">
+      <div class="filter-btn gs-filter active" onclick="filterSite(this, 'gs', 'all')">전체</div>
+      <div class="filter-btn gs-filter" onclick="filterSite(this, 'gs', '더쿠')">더쿠</div>
+      <div class="filter-btn gs-filter" onclick="filterSite(this, 'gs', '에펨코리아')">에펨코리아</div>
+      <div class="filter-btn gs-filter" onclick="filterSite(this, 'gs', '인스티즈')">인스티즈</div>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <div class="sort-btn gs-sort active" onclick="sortTable(this,'gs','date_desc')">날짜 최신순</div>
+        <div class="sort-btn gs-sort" onclick="sortTable(this,'gs','date_asc')">날짜 오래된순</div>
+        <div class="sort-btn gs-sort" onclick="sortTable(this,'gs','views_desc')">조회수 높은순</div>
+        <div class="sort-btn gs-sort" onclick="sortTable(this,'gs','views_asc')">조회수 낮은순</div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="post-table" id="gs-table">
+        <thead>
+          <tr>
+            <th style="width:44%">제목</th>
+            <th style="width:13%">사이트</th>
+            <th style="width:10%">키워드</th>
+            <th style="width:11%">작성일</th>
+            <th style="width:12%">조회수 / 댓글수</th>
+          </tr>
+        </thead>
+        <tbody id="gs-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="gs-pagination"></div>
+  </div>
+</div>
+
+<style>
+/* ===== 호버 팝업 스타일 ===== */
+.popup-overlay {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  max-width: 380px;
+  min-width: 260px;
+}
+.popup-overlay.visible { opacity: 1; }
+.popup-box {
+  background: #1a1d2e;
+  border: 1px solid #3a3f58;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.popup-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8eaf0;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #2a2f40;
+  padding-bottom: 8px;
+}
+.popup-content {
+  font-size: 12px;
+  color: #b0b4cc;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  word-break: keep-all;
+}
+.popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.popup-meta .site-badge { font-size: 10px; padding: 2px 8px; }
+.popup-meta .popup-date {
+  font-size: 10px;
+  color: #7b82a0;
+  font-family: 'Space Mono', monospace;
+  margin-left: auto;
+}
+.popup-row:hover td { background: #1e2230; cursor: default; }
+
+/* 정렬 버튼 */
+.sort-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sort-btn.active, .sort-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--cu);
+}
+.sort-btn.gs-sort.active, .sort-btn.gs-sort:hover {
+  border-color: var(--gs);
+}
+
+/* 팝업 조회수/댓글수 */
+.popup-stats {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.popup-stat {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ===== 탭 전환 =====
+let cuPosts = [];
+let gsPosts = [];
+let cuFiltered = [];
+let gsFiltered = [];
+
+
+
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const map = {summary:0, keywords:1, monitoring:2};
+  tabs[map[name]].classList.add('active');
+  if (name === 'keywords') buildKeywords();
+}
+
+function showMonitor(brand) {
+  document.querySelectorAll('.monitor-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.monitor-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('monitor-' + brand).classList.add('active');
+  const tabs = document.querySelectorAll('.monitor-tab');
+  if (brand === 'cu') tabs[0].classList.add('active');
+  else tabs[1].classList.add('active');
+}
+
+// ===== 최근 7일 기간 자동 계산 =====
+function formatDate(date) {
+  return date.toISOString().split('T')[0];
+}
+
+const today = new Date();
+
+const endDateObj = new Date(today);
+const startDateObj = new Date(today);
+
+startDateObj.setDate(startDateObj.getDate() - 6);
+
+const START_DATE = formatDate(startDateObj);
+const END_DATE   = formatDate(endDateObj);
+
+console.log(`수집 기간: ${START_DATE} ~ ${END_DATE}`);
+
+// ===== 실제 수집 데이터 =====
+
+
+// ===== 날짜 필터 적용 =====
+const filterByDate = posts => posts.filter(p => p.date >= START_DATE && p.date <= END_DATE);
+
+const SUPABASE_URL = 'https://gntaqfwkfolmufbwjmkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudGFxZndrZm9sbXVmYndqbWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjQxNjUsImV4cCI6MjA5NDM0MDE2NX0.QN0ZyBsN0OrZBkrhWPi60WHKOFdRWpjGZCWj5seGJ38';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function showLoading() {
+  const loading = document.getElementById('loading');
+  if (loading) loading.style.display = 'flex';
+}
+
+function hideLoading() {
+  const loading = document.getElementById('loading');
+  if (loading) loading.style.display = 'none';
+}
+
+async function loadPosts() {
+  showLoading();
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('posts')
+      .select('*')
+      .gte('post_date', START_DATE)
+      .lte('post_date', END_DATE)
+      .order('post_date', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      alert('Supabase 데이터를 불러오지 못했습니다.');
+      return;
+    }
+
+    const posts = data.map(p => ({
+      title: p.title,
+      site: p.site,
+      keyword: p.keyword,
+      date: p.post_date,
+      url: p.url,
+      content: p.content,
+      views: p.views,
+      comments: p.comments,
+      brand: p.brand
+    }));
+
+    cuPosts = posts.filter(p => p.brand === 'cu');
+    gsPosts = posts.filter(p => p.brand === 'gs');
+
+    cuFiltered = filterByDate(cuPosts);
+    gsFiltered = filterByDate(gsPosts);
+
+    buildSummary();
+    buildKeywords();
+    renderTable('cu');
+    renderTable('gs');
+
+  } catch (err) {
+    console.error(err);
+    alert('데이터 처리 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+
+// ===== 요약 탭: 실제 데이터 기반 통계 =====
+function buildSummary() {
+  const all = [...cuFiltered, ...gsFiltered];
+  document.getElementById('stat-total').textContent  = all.length;
+  document.getElementById('stat-cu').textContent     = cuFiltered.length;
+  document.getElementById('stat-gs').textContent     = gsFiltered.length;
+
+  // 키워드별 게시글 수
+  const kwCount = {};
+  all.forEach(p => { kwCount[p.keyword] = (kwCount[p.keyword]||0) + 1; });
+  const kwMax = Math.max(...Object.values(kwCount));
+  const kwHtml = Object.entries(kwCount).sort((a,b)=>b[1]-a[1]).map(([kw,cnt]) => {
+    const cls = ['CU','씨유','포켓CU','포켓씨유'].includes(kw) ? 'cu' : 'gs';
+    return `<div class="bar-item">
+      <span class="bar-label ${cls}">${kw}</span>
+      <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.round(cnt/kwMax*100)}%"></div></div>
+      <span class="bar-count">${cnt}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('kw-bars').innerHTML = kwHtml;
+
+  // 사이트별 게시글 수
+  const siteCount = {};
+  all.forEach(p => { siteCount[p.site] = (siteCount[p.site]||0) + 1; });
+  const total = all.length;
+  const siteColors = {'더쿠':'#ff9f43','에펨코리아':'#54a0ff','인스티즈':'#a29bfe'};
+  const badgeClass = {'더쿠':'badge-theqoo','에펨코리아':'badge-fmkorea','인스티즈':'badge-instiz'};
+
+  // 도넛 SVG 계산
+  let offset = 0;
+  const C = 2 * Math.PI * 52;
+  const segments = Object.entries(siteCount).map(([site,cnt]) => {
+    const pct = cnt / total;
+    const dash = pct * C;
+    const seg = {site, cnt, pct, dash, offset, color: siteColors[site]};
+    offset += dash;
+    return seg;
+  });
+  const donutSvg = segments.map(s =>
+    `<circle cx="70" cy="70" r="52" fill="none" stroke="${s.color}" stroke-width="22"
+      stroke-dasharray="${s.dash.toFixed(1)} ${(C-s.dash).toFixed(1)}"
+      stroke-dashoffset="${(C/4 - s.offset).toFixed(1)}" />`
+  ).join('');
+  document.getElementById('donut-circles').innerHTML = donutSvg;
+  document.getElementById('donut-total').textContent = total;
+
+  const legendHtml = segments.map(s =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${s.color}"></div>
+      <div class="legend-info">
+        <div class="legend-name">${s.site}</div>
+        <div class="legend-count">${s.cnt}건</div>
+      </div>
+      <span class="legend-pct">${Math.round(s.pct*100)}%</span>
+    </div>`
+  ).join('');
+  document.getElementById('site-legend').innerHTML = legendHtml;
+}
+
+// ===== 키워드 TOP10: 실제 title+content 명사 추출 =====
+function buildKeywords() {
+  const stopwords = new Set([
+    '이','가','을','를','은','는','의','에','에서','으로','로','와','과','도','만','한테',
+    '한','하','해','했','하는','하고','하면','해서','이라','이라고','라고','라서',
+    '그','저','것','거','수','좀','제','내','네','우리','거기','여기','저기',
+    '이거','저거','그거','뭐','왜','어떻게','얼마','언제','어디','누구',
+    '진짜','너무','정말','완전','되','안','못','아','어','오','음','ㅋ','ㄱ',
+    'CU','씨유','GS25','gs25','지에스','포켓CU','포켓씨유','우동지','우리동네',
+    '편의점','씨유편','지에스25',
+    '있','없','됩','됩니','되고','되어','이건','저건','그건','아님','아니',
+    '같아','같은','같이','같고','맞지','맞아','이제','근데','그리고','그냥',
+    '다','더','또','꼭','잘','막','다시','바로','이미','벌써','이번',
+    '오늘','어제','내일','요즘','지금','아직','먼저',
+    '주','개','번','원','개짜리','짜리','만원','천원','백원',
+  ]);
+
+  const extract = (text) => {
+    const words = text.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g, ' ').split(/\s+/);
+    return words.filter(w => {
+      if (w.length < 2) return false;
+      if (stopwords.has(w)) return false;
+      if (/^\d+$/.test(w)) return false;
+      if (/^[a-zA-Z]{1}$/.test(w)) return false;
+      return true;
+    });
+  };
+
+  const countWords = (posts) => {
+    const freq = {};
+    posts.forEach(p => {
+      const text = (p.title || '') + ' ' + (p.content || '');
+      extract(text).forEach(w => { freq[w] = (freq[w]||0) + 1; });
+    });
+    return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  };
+
+  const cuTop  = countWords(cuFiltered);
+  const gsTop  = countWords(gsFiltered);
+  const cuMax  = cuTop[0] ? cuTop[0][1] : 1;
+  const gsMax  = gsTop[0] ? gsTop[0][1] : 1;
+
+  const renderKeywords = (top, max, cls, containerId) => {
+    const html = top.map(([word, cnt], i) => `
+      <div class="keyword-item ${cls}">
+        <span class="keyword-rank ${i<3?'top3':''}">${String(i+1).padStart(2,'0')}</span>
+        <span class="keyword-word">${word}</span>
+        <div class="keyword-bar-mini"><div class="keyword-bar-fill ${cls==='gs-kw'?'gs':''}" style="width:${Math.round(cnt/max*100)}%"></div></div>
+        <span class="keyword-count">${cnt}</span>
+      </div>`).join('');
+    document.getElementById(containerId).innerHTML = html;
+  };
+
+  renderKeywords(cuTop, cuMax, '', 'cu-keyword-grid');
+  renderKeywords(gsTop, gsMax, 'gs-kw', 'gs-keyword-grid');
+}
+
+// ===== 팝업 =====
+const popup = document.createElement('div');
+popup.className = 'popup-overlay';
+popup.innerHTML = `<div class="popup-box">
+  <div class="popup-title"></div>
+  <div class="popup-content"></div>
+  <div class="popup-stats"></div>
+  <div class="popup-meta"></div>
+</div>`;
+document.body.appendChild(popup);
+
+function showPopup(e, post, brand) {
+  popup.querySelector('.popup-title').textContent = post.title;
+  popup.querySelector('.popup-content').textContent = post.content || '본문 없음';
+  const views    = post.views    != null ? post.views.toLocaleString()    + '회' : '-';
+  const comments = post.comments != null ? post.comments.toLocaleString() + '개' : '-';
+  popup.querySelector('.popup-stats').innerHTML =
+    `<span class="popup-stat">👁 조회수 ${views}</span><span class="popup-stat">💬 댓글수 ${comments}</span>`;
+  const siteClass = {'더쿠':'badge-theqoo','에펨코리아':'badge-fmkorea','인스티즈':'badge-instiz'}[post.site];
+  popup.querySelector('.popup-meta').innerHTML =
+    `<span class="site-badge ${siteClass}">${post.site}</span>
+     <span class="kw-tag ${brand==='gs'?'gs':''}">${post.keyword}</span>
+     <span class="popup-date">${post.date}</span>`;
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const pw = 380, ph = 200;
+  let left = e.clientX + 16, top = e.clientY + 8;
+  if (left + pw > vw - 20) left = e.clientX - pw - 8;
+  if (top  + ph > vh - 20) top  = e.clientY - ph - 8;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+  popup.classList.add('visible');
+}
+function hidePopup() { popup.classList.remove('visible'); }
+document.addEventListener('mousemove', e => {
+  if (!popup.classList.contains('visible')) return;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const pw = 380, ph = 200;
+  let left = e.clientX + 16, top = e.clientY + 8;
+  if (left + pw > vw - 20) left = e.clientX - pw - 8;
+  if (top  + ph > vh - 20) top  = e.clientY - ph - 8;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+});
+
+// ===== 페이지네이션 + 정렬 상태 =====
+const state = {
+  cu: { page:1, filter:'all', sort:'date_desc' },
+  gs: { page:1, filter:'all', sort:'date_desc' }
+};
+const PAGE_SIZE = 15;
+
+function getSiteBadge(site) {
+  const map = {'더쿠':'badge-theqoo','에펨코리아':'badge-fmkorea','인스티즈':'badge-instiz'};
+  return `<span class="site-badge ${map[site]}">${site}</span>`;
+}
+
+function sortPosts(posts, sort) {
+  const arr = [...posts];
+  switch(sort) {
+    case 'date_desc':  return arr.sort((a,b) => b.date.localeCompare(a.date));
+    case 'date_asc':   return arr.sort((a,b) => a.date.localeCompare(b.date));
+    case 'views_desc': return arr.sort((a,b) => (b.views||0) - (a.views||0));
+    case 'views_asc':  return arr.sort((a,b) => (a.views||0) - (b.views||0));
+    default: return arr;
+  }
+}
+
+function renderTable(brand) {
+  const posts   = brand === 'cu' ? cuFiltered : gsFiltered;
+  const { page, filter, sort } = state[brand];
+  let filtered  = filter === 'all' ? posts : posts.filter(p => p.site === filter);
+  filtered      = sortPosts(filtered, sort);
+  const total   = filtered.length;
+  const start   = (page - 1) * PAGE_SIZE;
+  const pageData = filtered.slice(start, start + PAGE_SIZE);
+  const kwClass  = brand === 'gs' ? 'gs' : '';
+  const tbody    = document.getElementById(`${brand}-tbody`);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">해당 조건의 게시글이 없습니다</div></td></tr>`;
+  } else {
+    tbody.innerHTML = pageData.map((p, i) => {
+      const views    = p.views    != null ? p.views.toLocaleString()    : '-';
+      const comments = p.comments != null ? p.comments.toLocaleString() : '-';
+      return `<tr class="popup-row" data-idx="${i}">
+        <td class="post-title"><span style="color:var(--text);font-weight:500;cursor:default;display:block;max-width:460px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</span></td>
+        <td>${getSiteBadge(p.site)}</td>
+        <td><span class="kw-tag ${kwClass}">${p.keyword}</span></td>
+        <td class="post-date">${p.date}</td>
+        <td class="post-date">${views} / ${comments}</td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('.popup-row').forEach(row => {
+      const i = parseInt(row.dataset.idx);
+      row.addEventListener('mouseenter', e => showPopup(e, pageData[i], brand));
+      row.addEventListener('mouseleave', hidePopup);
+    });
+  }
+
+  // 페이지네이션
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const pg = document.getElementById(`${brand}-pagination`);
+  pg.innerHTML = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (i === page ? ' active' : '');
+    btn.textContent = i;
+    btn.onclick = () => { state[brand].page = i; renderTable(brand); };
+    pg.appendChild(btn);
+  }
+}
+
+function filterSite(el, brand, site) {
+  el.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state[brand].filter = site;
+  state[brand].page   = 1;
+  renderTable(brand);
+}
+
+function sortTable(el, brand, sortVal) {
+  el.parentElement.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state[brand].sort = sortVal;
+  state[brand].page = 1;
+  renderTable(brand);
+}
+
+// ===== 초기 렌더링 =====  
+loadPosts();
+
+
+// ===== 데이터 (content: 실제 수집 본문) =====</script>
+</body>
+</html>

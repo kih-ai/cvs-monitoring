@@ -1,0 +1,11 @@
+.env
+*.env
+
+init_upload.py
+collect.py
+new_posts.json
+posts.json
+backups/
+
+__pycache__/
+*.pyc
