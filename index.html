@@ -488,9 +488,9 @@
 <div class="header">
   <div class="header-left">
     <h1>편의점 브랜드 <span>모니터링</span> 대시보드</h1>
-    <p>수집기간: 2026.05.06 ~ 2026.05.12 &nbsp;|&nbsp; 수집사이트: 더쿠 · 에펨코리아 · 인스티즈</p>
+    <p>수집기간: <span id="display-period">-</span> &nbsp;|&nbsp; 수집사이트: 더쿠 · 에펨코리아 · 인스티즈</p>
   </div>
-  <div class="header-badge">최종 업데이트: <span>2026.05.12</span></div>
+  <div class="header-badge">최종 업데이트: <span id="display-updated">-</span></div>
 </div>
 
 <div class="tabs">
@@ -506,7 +506,7 @@
     <div class="stat-card total-card">
       <div class="label">총 수집 게시글</div>
       <div class="value" style="color: var(--accent)" id="stat-total">-</div>
-      <div class="sub">05.06 ~ 05.12 기준</div>
+      <div class="sub" id="display-period-short">- 기준</div>
     </div>
     <div class="stat-card cu-card">
       <div class="label">CU 관련 게시글</div>
@@ -552,12 +552,12 @@
 <div class="tab-content" id="tab-keywords">
 
   <div class="keyword-section cu-section">
-    <h2 style="color:var(--cu-light)">CU 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ 05.06~05.12 제목+본문 명사 분석</small></h2>
+    <h2 style="color:var(--cu-light)">CU 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
     <div class="keyword-grid" id="cu-keyword-grid"></div>
   </div>
 
   <div class="keyword-section gs-section" style="margin-top:32px">
-    <h2 style="color:var(--gs-light)">GS25 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ 05.06~05.12 제목+본문 명사 분석</small></h2>
+    <h2 style="color:var(--gs-light)">GS25 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
     <div class="keyword-grid" id="gs-keyword-grid"></div>
   </div>
 </div>
@@ -762,6 +762,30 @@ startDateObj.setDate(startDateObj.getDate() - 6);
 const START_DATE = formatDate(startDateObj);
 const END_DATE   = formatDate(endDateObj);
 
+function formatDisplayDate(dateStr) {
+  return dateStr.replaceAll('-', '.');
+}
+
+function formatShortPeriod(startStr, endStr) {
+  const start = startStr.slice(5).replace('-', '.');
+  const end = endStr.slice(5).replace('-', '.');
+  return `${start} ~ ${end}`;
+}
+
+function updateDateLabels() {
+  const fullPeriod = `${formatDisplayDate(START_DATE)} ~ ${formatDisplayDate(END_DATE)}`;
+  const shortPeriod = formatShortPeriod(START_DATE, END_DATE);
+  const compactPeriod = shortPeriod.replace(' ~ ', '~');
+
+  document.getElementById('display-period').textContent = fullPeriod;
+  document.getElementById('display-updated').textContent = formatDisplayDate(END_DATE);
+  document.getElementById('display-period-short').textContent = `${shortPeriod} 기준`;
+
+  document.querySelectorAll('.display-period-compact').forEach(el => {
+    el.textContent = compactPeriod;
+  });
+}
+
 console.log(`수집 기간: ${START_DATE} ~ ${END_DATE}`);
 
 // ===== 실제 수집 데이터 =====
@@ -819,6 +843,8 @@ async function loadPosts() {
 
     cuFiltered = filterByDate(cuPosts);
     gsFiltered = filterByDate(gsPosts);
+
+    updateDateLabels();
 
     buildSummary();
     buildKeywords();
