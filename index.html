@@ -244,6 +244,43 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
+  /* ===== 워드클라우드 ===== */
+.wordcloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.word {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  cursor: default;
+  user-select: none;
+}
+
+.word:hover {
+  transform: scale(1.08);
+}
+
+.word.cu {
+  color: var(--cu-light);
+  background: rgba(108,99,255,0.12);
+}
+
+.word.gs {
+  color: var(--gs-light);
+  background: rgba(0,200,150,0.12);
+}
   .keyword-item {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -552,13 +589,13 @@
 <div class="tab-content" id="tab-keywords">
 
   <div class="keyword-section cu-section">
-    <h2 style="color:var(--cu-light)">CU 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
-    <div class="keyword-grid" id="cu-keyword-grid"></div>
+    <h2 style="color:var(--cu-light)">CU 연관 키워드 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
+    <div class="wordcloud" id="cu-keyword-grid"></div>
   </div>
 
   <div class="keyword-section gs-section" style="margin-top:32px">
-    <h2 style="color:var(--gs-light)">GS25 연관 키워드 Top 10 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
-    <div class="keyword-grid" id="gs-keyword-grid"></div>
+    <h2 style="color:var(--gs-light)">GS25 연관 키워드 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
+    <div class="wordcloud" id="gs-keyword-grid"></div>
   </div>
 </div>
 
@@ -962,15 +999,27 @@ function buildKeywords() {
   const gsMax  = gsTop[0] ? gsTop[0][1] : 1;
 
   const renderKeywords = (top, max, cls, containerId) => {
-    const html = top.map(([word, cnt], i) => `
-      <div class="keyword-item ${cls}">
-        <span class="keyword-rank ${i<3?'top3':''}">${String(i+1).padStart(2,'0')}</span>
-        <span class="keyword-word">${word}</span>
-        <div class="keyword-bar-mini"><div class="keyword-bar-fill ${cls==='gs-kw'?'gs':''}" style="width:${Math.round(cnt/max*100)}%"></div></div>
-        <span class="keyword-count">${cnt}</span>
-      </div>`).join('');
-    document.getElementById(containerId).innerHTML = html;
-  };
+
+  const html = top.map(([word, cnt]) => {
+
+    const size = 14 + (cnt / max) * 30;
+
+    return `
+      <span
+        class="word ${cls === 'gs-kw' ? 'gs' : 'cu'}"
+        style="
+          font-size:${size}px;
+          opacity:${0.6 + (cnt/max)*0.4};
+        "
+        title="${cnt}회 언급"
+      >
+        ${word}
+      </span>
+    `;
+  }).join('');
+
+  document.getElementById(containerId).innerHTML = html;
+};
 
   renderKeywords(cuTop, cuMax, '', 'cu-keyword-grid');
   renderKeywords(gsTop, gsMax, 'gs-kw', 'gs-keyword-grid');
