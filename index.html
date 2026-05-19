@@ -273,6 +273,8 @@
 
   border: 1px solid var(--border);
   border-radius: 16px;
+
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
 
 /* ===== 반응형 ===== */
@@ -1008,45 +1010,44 @@ const renderKeywords = (top, max, cls, containerId) => {
   const canvas = document.getElementById(containerId);
   const isGs = cls === 'gs-kw';
 
-  canvas.width = canvas.offsetWidth;
-  canvas.height = 460;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = rect.width * dpr;
+  canvas.height = 460 * dpr;
+  canvas.style.width = '100%';
+  canvas.style.height = '460px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const colors = isGs
-    ? [
-        '#5fffd4',
-        '#00c896',
-        '#8fffe3',
-        '#35e8bd',
-        '#b6fff0'
-      ]
-    : [
-        '#a89cff',
-        '#6c63ff',
-        '#c7bfff',
-        '#8f86ff',
-        '#e0dcff'
-      ];
+    ? ['#5FFFD4', '#2FE6B8', '#9AFBE7', '#D9FFF6']
+    : ['#A89CFF', '#8F86FF', '#C9C2FF', '#E3DFFF'];
 
   const list = top.map(([word, cnt]) => {
     const ratio = cnt / max;
-    const size = 14 + ratio * 54;
+    const size = 15 + ratio * 46;
     return [word, size];
   });
 
   WordCloud(canvas, {
     list,
-    gridSize: 9,
+    gridSize: 12,
     weightFactor: 1,
     fontFamily: 'Noto Sans KR, sans-serif',
-    fontWeight: '700',
+    fontWeight: '800',
     color: () => colors[Math.floor(Math.random() * colors.length)],
     backgroundColor: '#161920',
-    rotateRatio: 0.12,
+
+    rotateRatio: 0.03,
     rotationSteps: 2,
-    minRotation: -Math.PI / 10,
-    maxRotation: Math.PI / 10,
+    minRotation: -Math.PI / 18,
+    maxRotation: Math.PI / 18,
+
     drawOutOfBound: false,
-    shrinkToFit: true
+    shrinkToFit: true,
+    clearCanvas: true
   });
 };
 
