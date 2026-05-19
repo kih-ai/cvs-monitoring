@@ -246,30 +246,29 @@
   }
   /* ===== 워드클라우드 ===== */
 .wordcloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-  min-height: 260px;
-  padding: 24px;
-  background: var(--surface);
+  width: 100%;
+  height: 420px;
+  display: block;
+  background: #eef1f6;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 24px;
 }
 
 .word {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 10px;
+  position: absolute;
+
   font-weight: 700;
-  transition: all 0.2s ease;
-  cursor: default;
+  line-height: 1;
+
   user-select: none;
+  white-space: nowrap;
+
+  transition: all 0.25s ease;
 }
 
 .word:hover {
   transform: scale(1.08);
+  z-index: 10;
 }
 
 .word.cu {
@@ -590,12 +589,12 @@
 
   <div class="keyword-section cu-section">
     <h2 style="color:var(--cu-light)">CU 연관 키워드 TOP 50 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
-    <div class="wordcloud" id="cu-keyword-grid"></div>
+    <canvas class="wordcloud" id="cu-keyword-grid"></canvas>
   </div>
 
   <div class="keyword-section gs-section" style="margin-top:32px">
     <h2 style="color:var(--gs-light)">GS25 연관 키워드 TOP 50 <small style="font-size:11px;color:var(--muted);font-weight:400;">※ <span class="display-period-compact">-</span> 제목+본문 명사 분석</small></h2>
-    <div class="wordcloud" id="gs-keyword-grid"></div>
+    <canvas class="wordcloud" id="gs-keyword-grid"></canvas>
   </div>
 </div>
 
@@ -755,6 +754,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.3/src/wordcloud2.min.js"></script>
 
 <script>
 // ===== 탭 전환 =====
@@ -999,38 +999,37 @@ function buildKeywords() {
   const gsMax  = gsTop[0] ? gsTop[0][1] : 1;
 
 const renderKeywords = (top, max, cls, containerId) => {
+  const canvas = document.getElementById(containerId);
   const isGs = cls === 'gs-kw';
 
-  const html = top.map(([word, cnt]) => {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 420;
+
+  const colors = isGs
+    ? ['#34d399', '#10b981', '#6ee7b7', '#059669', '#99f6e4']
+    : ['#60a5fa', '#a78bfa', '#c084fc', '#818cf8', '#38bdf8', '#fb7185'];
+
+  const list = top.map(([word, cnt]) => {
     const ratio = cnt / max;
+    const size = 14 + ratio * 58;
+    return [word, size];
+  });
 
-    const size = 13 + ratio * 28;
-    const opacity = 0.35 + ratio * 0.65;
-
-    const color = isGs
-      ? `rgba(95, 255, 212, ${opacity})`
-      : `rgba(168, 156, 255, ${opacity})`;
-
-    const bg = isGs
-      ? `rgba(0, 200, 150, ${0.06 + ratio * 0.14})`
-      : `rgba(108, 99, 255, ${0.06 + ratio * 0.14})`;
-
-    return `
-      <span
-        class="word ${isGs ? 'gs' : 'cu'}"
-        style="
-          font-size:${size}px;
-          color:${color};
-          background:${bg};
-        "
-        title="${cnt}회 언급"
-      >
-        ${word}
-      </span>
-    `;
-  }).join('');
-
-  document.getElementById(containerId).innerHTML = html;
+  WordCloud(canvas, {
+    list,
+    gridSize: 10,
+    weightFactor: 1,
+    fontFamily: 'Noto Sans KR, sans-serif',
+    fontWeight: '700',
+    color: () => colors[Math.floor(Math.random() * colors.length)],
+    backgroundColor: '#eef1f6',
+    rotateRatio: 0.15,
+    rotationSteps: 2,
+    minRotation: -Math.PI / 8,
+    maxRotation: Math.PI / 8,
+    drawOutOfBound: false,
+    shrinkToFit: true
+  });
 };
 
   renderKeywords(cuTop, cuMax, '', 'cu-keyword-grid');
