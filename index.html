@@ -222,14 +222,23 @@
   /* Keyword Stats Tab */
   /* ===== Keyword Stats Tab ===== */
 
+#tab-keywords {
+  min-height: calc(100vh - 118px);
+}
+
 .keyword-cloud-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
+  min-height: calc(100vh - 190px);
+  align-items: stretch;
 }
 
 .keyword-section {
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 190px);
 }
 
 .keyword-section h2 {
@@ -240,6 +249,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .keyword-section h2::before {
@@ -265,16 +275,29 @@
 
 .wordcloud {
   width: 100%;
-  height: 500px;
+  height: clamp(560px, calc(100vh - 235px), 780px);
+  flex: 1 1 auto;
 
   display: block;
 
-  background: var(--surface);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,0.035), transparent 48%),
+    var(--surface);
 
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
 
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.025),
+    0 18px 48px rgba(0,0,0,0.22);
+}
+
+.cu-section .wordcloud {
+  border-color: rgba(108, 99, 255, 0.38);
+}
+
+.gs-section .wordcloud {
+  border-color: rgba(0, 200, 150, 0.38);
 }
 
 /* ===== 반응형 ===== */
@@ -282,6 +305,15 @@
 @media (max-width: 1100px) {
   .keyword-cloud-layout {
     grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .keyword-section {
+    min-height: auto;
+  }
+
+  .wordcloud {
+    height: 560px;
   }
 }
 
@@ -1010,56 +1042,79 @@ const renderKeywords = (top, max, cls, containerId) => {
   const canvas = document.getElementById(containerId);
   const isGs = cls === 'gs-kw';
 
-  const width = canvas.parentElement.clientWidth;
-  const height = 500;
+  const width = Math.max(320, canvas.parentElement.clientWidth);
+  const cssHeight = parseInt(getComputedStyle(canvas).height, 10);
+  const height = Number.isFinite(cssHeight) ? cssHeight : 620;
 
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.floor(width * window.devicePixelRatio);
+  canvas.height = Math.floor(height * window.devicePixelRatio);
   canvas.style.width = '100%';
   canvas.style.height = `${height}px`;
 
-  const colors = isGs
-    ? ['#5FFFD4', '#2FE6B8', '#9AFBE7', '#D9FFF6']
-    : ['#A89CFF', '#8F86FF', '#C9C2FF', '#E3DFFF'];
+  const hexToRgb = hex => {
+    const clean = hex.replace('#', '');
+    return [
+      parseInt(clean.slice(0, 2), 16),
+      parseInt(clean.slice(2, 4), 16),
+      parseInt(clean.slice(4, 6), 16)
+    ];
+  };
 
-  const list = top.map(([word, cnt]) => {
+  const rgbToHex = ([r, g, b]) =>
+    '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+  const mixColor = (lightHex, darkHex, t) => {
+    const light = hexToRgb(lightHex);
+    const dark = hexToRgb(darkHex);
+    const eased = Math.pow(Math.max(0, Math.min(1, t)), 0.72);
+    return rgbToHex(light.map((v, i) => v + (dark[i] - v) * eased));
+  };
+
+  const gradient = isGs
+    ? { light: '#D9FFF6', dark: '#00A982' }
+    : { light: '#E3DFFF', dark: '#5A50FF' };
+
+  const colorByWord = new Map();
+
+  const list = top.map(([word, cnt], index) => {
     const ratio = cnt / max;
+    const baseSize = 15 + ratio * 34;
+    const top10Boost = index < 10 ? 2 : 1;
+    const size = baseSize * top10Boost;
 
-    // 기존보다 크기 줄임
-    const size = 13 + ratio * 36;
+    // 빈도수가 높을수록 더 진한 색으로 보이도록 50개 항목 전체에 연속 그라데이션 적용
+    colorByWord.set(word, mixColor(gradient.light, gradient.dark, ratio));
 
     return [word, size];
   });
 
   WordCloud(canvas, {
     list,
-    gridSize: 14,
-    weightFactor: 1,
+    gridSize: Math.round(12 * window.devicePixelRatio),
+    weightFactor: window.devicePixelRatio,
 
     fontFamily: 'Noto Sans KR, sans-serif',
-    fontWeight: '800',
+    fontWeight: '900',
 
-    color: () => colors[Math.floor(Math.random() * colors.length)],
+    color: (word) => colorByWord.get(word) || gradient.light,
     backgroundColor: '#161920',
 
-    // 회전 거의 제거
-    rotateRatio: 0.02,
+    // 키워드 크기 차이를 더 잘 보이게 하되, 읽기 흐름은 유지
+    rotateRatio: 0.015,
     rotationSteps: 2,
-    minRotation: -Math.PI / 36,
-    maxRotation: Math.PI / 36,
+    minRotation: -Math.PI / 48,
+    maxRotation: Math.PI / 48,
 
-    // 잘림 방지
+    // 큰 TOP10 키워드가 캔버스 밖으로 잘리지 않도록 유지
     drawOutOfBound: false,
     shrinkToFit: true,
 
-    // 여백 확보
-    origin: [width / 2, height / 2],
-    ellipticity: 0.6,
+    origin: [canvas.width / 2, canvas.height / 2],
+    ellipticity: 0.64,
 
     clearCanvas: true
   });
-};
-
+}
   renderKeywords(cuTop, cuMax, '', 'cu-keyword-grid');
   renderKeywords(gsTop, gsMax, 'gs-kw', 'gs-keyword-grid');
 }
